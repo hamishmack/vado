@@ -17,7 +17,17 @@ You can pass ssh options like this...
     vado -t vim
 
 This tells vado to pass -t to ssh (forces pseudo-tty allocation
-and makes vim work nicely)
+and makes vim work nicely).
+
+
+vagrant
+=======
+
+This is not tied to vagrant, but can be used with it and is
+faster than 'vagrant ssh'.   If the user detected in 'mount'
+is 'vagrant' and the host is '127.0.0.1' then it will default to
+port 2222 and use '~/.vagrant.d/insecure_private_key' for
+authentication.
 
 
 install
