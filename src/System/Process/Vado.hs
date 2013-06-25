@@ -39,6 +39,8 @@ import System.FilePath (addTrailingPathSeparator, makeRelative, (</>))
 import Data.Maybe (catMaybes, fromMaybe)
 #if MIN_VERSION_base(4,6,0)
 import Text.Read (readMaybe)
+#else
+import Text.Read (readEither)
 #endif
 import System.Exit (ExitCode)
 import System.Process (readProcess)
