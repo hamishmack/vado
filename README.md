@@ -23,11 +23,34 @@ and makes vim work nicely).
 vagrant
 =======
 
-This is not tied to vagrant, but can be used with it and is
-faster than 'vagrant ssh'.   If the user detected in 'mount'
-is 'vagrant' and the host is '127.0.0.1' then it will default to
-port 2222 and use '~/.vagrant.d/insecure_private_key' for
-authentication.
+This is not tied to vagrant, but can be used with it and is faster
+than 'vagrant ssh'. If the user and host detected in 'mount' are
+specified in the '~/.vadosettings' file, then the specified key and
+port will be used. If the file is not present or incorrectly formatted
+then the default settings for vagrant will be used:
+     - User: vagrant
+     - Host: 127.0.0.1
+     - Port: 2222
+     - Key file: ~/.vagrant.d/insecure_private_key
+
+### Example '.vadosettings' file
+
+```haskell
+[
+  MountSettings {
+    sshfsUser = "vagrant"
+  , sshfsHost = "localhost"
+  , sshfsPort = 2222
+  , idFile = "/Users/dan/.vagrant.d/insecure_private_key"
+  }, 
+  MountSettings {
+    sshfsUser = "vagrant"
+  , sshfsHost = "server.local"
+  , sshfsPort = 2233
+  , idFile = "/Users/dan/keys/local_server_key"
+  }
+]
+```
 
 
 install

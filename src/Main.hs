@@ -24,7 +24,7 @@ import System.Environment (getArgs)
 import Data.List (isPrefixOf)
 import System.Exit (exitWith, ExitCode(..))
 import System.Process (rawSystem)
-import System.Process.Vado (getMountPoint, vado)
+import System.Process.Vado (getMountPoint, vado, readSettings, defMountSettings)
 
 -- | Main function for vado
 main = do
@@ -33,11 +33,13 @@ main = do
         (sshopts,cmd:rest) -> do
             currentDir <- getCurrentDirectory
             mbMountPoint <- getMountPoint currentDir
+            ms <- readSettings
             case mbMountPoint of
-                Left mp   -> vado mp currentDir sshopts cmd rest
+                Left mp   -> vado mp ms currentDir sshopts cmd rest
                                >>= rawSystem "ssh" >>= exitWith
                 Right err -> hPutStrLn stderr err >> (exitWith $ ExitFailure 1)
         _ -> do
+            defSettings <- defMountSettings
             hPutStrLn stderr $
                 "Usage vado [ssh options] command [args]\n\n"
 
@@ -45,9 +47,8 @@ main = do
                 ++ "machine that corrisponds to the current directory locally.\n\n"
 
                 ++ "The ssh options must start with a dash '-'.\n"
-                ++ "If the mount point is 'vagrant@127.0.0.1'\n"
-                ++ "then the most common vagrant connection options\n"
-                ++ "  -p2222 and -i~/.vagrant.d/insecure_private_key\n"
-                ++ "are included automatically."
+                ++ "You can specify port and key location settings\n"
+                ++ "in the ~/.vadosettings file.\nExample contents:\n"
+                ++ show [defSettings]
             exitWith $ ExitFailure 1
 
