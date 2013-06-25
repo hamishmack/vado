@@ -40,7 +40,7 @@ import Data.Maybe (catMaybes, fromMaybe)
 #if MIN_VERSION_base(4,6,0)
 import Text.Read (readMaybe)
 #else
-import Text.Read (readEither)
+import Text.Read (reads)
 #endif
 import System.Exit (ExitCode)
 import System.Process (readProcess)
@@ -50,9 +50,9 @@ import System.Directory (getHomeDirectory, getCurrentDirectory)
 -- | Parse a string using the 'Read' instance.
 -- Succeeds if there is exactly one valid result.
 readMaybe :: Read a => String -> Maybe a
-readMaybe s = case readEither s of
-                Left _  -> Nothing
-                Right a -> Just a
+readMaybe s = case reads s of
+              [(x, "")] -> Just x
+              _ -> Nothing
 #endif    
 
 -- | Remote file system mount point
