@@ -1,5 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP #-}
 -----------------------------------------------------------------------------
 --
 -- Module      :  System.Process.Vado
@@ -20,21 +22,38 @@ module System.Process.Vado (
     MountPoint(..)
   , parseMountPoint
   , getMountPoint
+  , MountSettings(..)
+  , readSettings
+  , defMountSettings
   , vado
 ) where
 
 import Control.Applicative ((<$>))
 import Data.Text (pack, unpack, Text)
-import Data.List (isPrefixOf)
+import Data.List (isPrefixOf, find)
 import Data.Monoid (mconcat)
 import Data.Attoparsec.Text (parse, string, Parser, IResult(..))
 import qualified Data.Attoparsec.Text as P (takeWhile1)
 import Data.Text.IO (hPutStrLn)
 import System.FilePath (addTrailingPathSeparator, makeRelative, (</>))
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, fromMaybe)
+#if MIN_VERSION_base(4,6,0)
+import Text.Read (readMaybe)
+#else
+import Text.Read (reads)
+#endif
 import System.Exit (ExitCode)
 import System.Process (readProcess)
 import System.Directory (getHomeDirectory, getCurrentDirectory)
+
+#if !MIN_VERSION_base(4,6,0)
+-- | Parse a string using the 'Read' instance.
+-- Succeeds if there is exactly one valid result.
+readMaybe :: Read a => String -> Maybe a
+readMaybe s = case reads s of
+              [(x, "")] -> Just x
+              _ -> Nothing
+#endif    
 
 -- | Remote file system mount point
 data MountPoint = MountPoint {
@@ -47,6 +66,26 @@ data MountPoint = MountPoint {
 instance Show MountPoint where
     show MountPoint {..} = unpack (mconcat [remoteUser, "@", remoteHost, ":"])
                             ++ remoteDir ++ " on " ++ localDir ++ " "
+
+-- | Mount point settings
+data MountSettings = MountSettings {
+    sshfsUser :: Text
+  , sshfsHost :: Text
+  , sshfsPort :: Int
+  , idFile     :: FilePath
+  } deriving (Show, Read)
+
+-- | Default mount settings for vagrant
+defMountSettings :: IO MountSettings
+defMountSettings = do
+  homeDir <- getHomeDirectory
+  return MountSettings {
+    sshfsUser = "vagrant"
+  , sshfsHost = "127.0.0.1"
+  , sshfsPort = 2222
+  , idFile = homeDir </> ".vagrant.d/insecure_private_key"
+  }
+                   
 
 -- | Parser for a line of output from the 'mount' command
 mountPointParser :: Parser MountPoint
@@ -89,33 +128,47 @@ getMountPoint dir = do
                             _  -> "The following remote mount points were not suitable\n"
                                     ++ concatMap (\mp -> "  " ++ show mp ++ "\n") mountPoints
 
+
+-- | Read a list of predefined mount points from the
+-- ~/.vadosettings files                            
+readSettings :: IO [MountSettings]
+readSettings = do
+  homeDir <- getHomeDirectory
+  settings :: Maybe [MountSettings] <- readMaybe <$>
+                              readFile (homeDir </> ".vadosettings")
+  defaultSettings <- defMountSettings                            
+  return $ fromMaybe [defaultSettings] settings
+
 -- | Get a list of arguments to pass to ssh to run command on a remote machine
 --   in the directory that is mounted locally
-vado :: MountPoint  -- ^ Mount point found using 'getMountPoint'
-     -> FilePath    -- ^ Local directory you want the command to run in.
-                    --   Normally this will be the same directory
-                    --   you passed to 'getMountPoint'.
-                    --   The vado will run the command in the remote
-                    --   directory that maps to this one.
-     -> [String]    -- ^ Options to pass to ssh. If the mount point is 'vagrant@127.0.0.1'
-                    --   then the most common vagrant connection options
-                    --   ('-p2222' and '-i~/.vagrant.d/insecure_private_key')
-                    --   are included automatically
-     -> FilePath    -- ^ Command to run
-     -> [String]    -- ^ Arguments to pass to the command
-     -> IO [String] -- ^ Full list of arguments that should be passed to ssh
-vado MountPoint{..} cwd sshopts cmd args = do
+vado :: MountPoint      -- ^ Mount point found using 'getMountPoint'
+     -> [MountSettings] -- ^ SSH settings from the '.vadosettings' files
+     -> FilePath        -- ^ Local directory you want the command to run in.
+                        --   Normally this will be the same directory
+                        --   you passed to 'getMountPoint'.
+                        --   The vado will run the command in the remote
+                        --   directory that maps to this one.
+     -> [String]        -- ^ Options to pass to ssh. If the mount point is 'vagrant@127.0.0.1'
+                        --   then the most common vagrant connection options
+                        --   ('-p2222' and '-i~/.vagrant.d/insecure_private_key')
+                        --   are included automatically
+     -> FilePath        -- ^ Command to run
+     -> [String]       -- ^ Arguments to pass to the command
+     -> IO [String]    -- ^ Full list of arguments that should be passed to ssh
+vado MountPoint{..} settings cwd sshopts cmd args = do
     homeDir <- getHomeDirectory
     -- Work out where the current directory is on the remote machine
     let destinationDir = remoteDir </> makeRelative localDir cwd
     -- Run ssh with
     return $
         [unpack $ mconcat [remoteUser, "@", remoteHost]]
-        ++ case (remoteUser, remoteHost) of
-                ("vagrant","127.0.0.1") -> -- Default options for vagrant
-                    ["-p2222",
-                    "-i" ++ homeDir </> ".vagrant.d/insecure_private_key"]
-                _ -> []
+        ++ case find (\MountSettings{..} ->
+                       remoteUser == sshfsUser
+                       && remoteHost == sshfsHost) settings of
+             Just MountSettings{..} ->
+               [ "-p" ++ show sshfsPort
+               , "-i" ++ idFile ]
+             Nothing -> []
         ++ sshopts
         ++ ["cd", translate destinationDir, "&&", cmd]
         ++ args
