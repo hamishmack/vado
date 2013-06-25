@@ -1,6 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP #-}
 -----------------------------------------------------------------------------
 --
 -- Module      :  System.Process.Vado
@@ -36,10 +37,21 @@ import qualified Data.Attoparsec.Text as P (takeWhile1)
 import Data.Text.IO (hPutStrLn)
 import System.FilePath (addTrailingPathSeparator, makeRelative, (</>))
 import Data.Maybe (catMaybes, fromMaybe)
+#if MIN_VERSION_base(4,6,0)
 import Text.Read (readMaybe)
+#endif
 import System.Exit (ExitCode)
 import System.Process (readProcess)
 import System.Directory (getHomeDirectory, getCurrentDirectory)
+
+#if !MIN_VERSION_base(4,6,0)
+-- | Parse a string using the 'Read' instance.
+-- Succeeds if there is exactly one valid result.
+readMaybe :: Read a => String -> Maybe a
+readMaybe s = case readEither s of
+                Left _  -> Nothing
+                Right a -> Just a
+#endif    
 
 -- | Remote file system mount point
 data MountPoint = MountPoint {
