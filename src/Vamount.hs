@@ -69,10 +69,10 @@ printUsage = do
     "Usage vamount [ssh options] remote_path [profile #]\n\n"
     ++ "The remote_path from the remote server specified\n"
     ++ "in the ~/.vadosettings file under number [profile #]\n"
-    ++ "will be mounted in the current directory using sshgs\n\n"
+    ++ "will be mounted in the current directory using sshfs\n\n"
     ++ "The ssh options must start with a dash '-'.\n"
     ++ "The profile number count starts from 1.\n"
-    ++ "If the [profile #] is abscent or is 0 then \n"
+    ++ "If the [profile #] is absent or is 0 then \n"
     ++ "the default configuration will be used:\n"
     ++ show [defSettings]
   exitWith $ ExitFailure 1
