@@ -26,6 +26,7 @@ module System.Process.Vado (
   , readSettings
   , defMountSettings
   , vado
+  , vamount
 ) where
 
 import Control.Applicative ((<$>))
@@ -177,4 +178,17 @@ vado MountPoint{..} settings cwd sshopts cmd args = do
       where escape '\'' = showString "'\\''"
             escape c    = showChar c
 
-
+-- | Get a list of arguments to pass to sshfs to
+--   mount a remote filesystem in the given directory
+vamount :: MountSettings -- ^ Mount settings to use
+        -> FilePath      -- ^ Remote directory to mount
+        -> FilePath      -- ^ Local directory (where to mount)
+        -> [String]      -- ^ Other options to pass to sshfs
+        -> [String]      -- ^ Resulting list of arguments
+vamount MountSettings{..} remoteDir localDir opts =
+  [ unpack $ mconcat
+    [ sshfsUser, "@", sshfsHost
+    , ":", pack remoteDir]
+  , localDir
+  , "-p" ++ show sshfsPort
+  , "-oIdentityFile=" ++ idFile ] ++ opts
