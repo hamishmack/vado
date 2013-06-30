@@ -46,7 +46,7 @@ import Text.Read (reads)
 #endif
 import System.Exit (ExitCode)
 import System.Process (readProcess)
-import System.Directory (getHomeDirectory, getCurrentDirectory)
+import System.Directory (getHomeDirectory, getCurrentDirectory, doesFileExist)
 
 #if !MIN_VERSION_base(4,6,0)
 -- | Parse a string using the 'Read' instance.
@@ -55,7 +55,7 @@ readMaybe :: Read a => String -> Maybe a
 readMaybe s = case reads s of
               [(x, "")] -> Just x
               _ -> Nothing
-#endif    
+#endif
 
 -- | Remote file system mount point
 data MountPoint = MountPoint {
@@ -87,7 +87,7 @@ defMountSettings = do
   , sshfsPort = 2222
   , idFile = homeDir </> ".vagrant.d/insecure_private_key"
   }
-                   
+
 
 -- | Parser for a line of output from the 'mount' command
 mountPointParser :: Parser MountPoint
@@ -131,13 +131,17 @@ getMountPoint dir = do
 
 
 -- | Read a list of predefined mount points from the
--- ~/.vadosettings files                            
+-- ~/.vadosettings files
 readSettings :: IO [MountSettings]
 readSettings = do
   homeDir <- getHomeDirectory
-  settings :: Maybe [MountSettings] <- readMaybe <$>
-                              readFile (homeDir </> ".vadosettings")
-  defaultSettings <- defMountSettings                            
+  settings :: Maybe [MountSettings] <- do
+      let settingsFile = homeDir </> ".vadosettings"
+      exists <- doesFileExist settingsFile
+      if exists
+        then readMaybe <$> readFile settingsFile
+        else return Nothing
+  defaultSettings <- defMountSettings
   return $ fromMaybe [defaultSettings] settings
 
 -- | Get a list of arguments to pass to ssh to run command on a remote machine
