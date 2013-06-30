@@ -29,15 +29,16 @@ module System.Process.Vado (
   , vamount
 ) where
 
-import Control.Applicative ((<$>))
-import Data.Text (pack, unpack, Text)
+import Prelude hiding (null)
+import Control.Applicative ((<$>), (<*))
+import Data.Text (pack, unpack, Text, null)
 import Data.List (isPrefixOf, find)
-import Data.Monoid (mconcat)
-import Data.Attoparsec.Text (parse, string, Parser, IResult(..))
+import Data.Monoid (mconcat, (<>))
+import Data.Attoparsec.Text (parseOnly, string, Parser, IResult(..), option)
 import qualified Data.Attoparsec.Text as P (takeWhile1)
 import Data.Text.IO (hPutStrLn)
 import System.FilePath (addTrailingPathSeparator, makeRelative, (</>))
-import Data.Maybe (catMaybes, fromMaybe)
+import Data.Maybe (mapMaybe, fromMaybe)
 #if MIN_VERSION_base(4,6,0)
 import Text.Read (readMaybe)
 #else
@@ -91,8 +92,7 @@ defMountSettings = do
 -- | Parser for a line of output from the 'mount' command
 mountPointParser :: Parser MountPoint
 mountPointParser = do
-    remoteUser <- P.takeWhile1 (/= '@')
-    string "@"
+    remoteUser <- option "" (P.takeWhile1 (/= '@') <* string "@")
     remoteHost <- P.takeWhile1 (/= ':')
     string ":"
     remoteDir <- unpack <$> P.takeWhile1 (/= ' ')
@@ -103,9 +103,9 @@ mountPointParser = do
 -- | Parses a line looking for a remote mount point
 parseMountPoint :: String           -- ^ line of output fromt he 'mount' command
                 -> Maybe MountPoint
-parseMountPoint = done . parse mountPointParser . pack
+parseMountPoint = done . parseOnly mountPointParser . pack
   where
-    done (Done _ x) = Just x
+    done (Right x)  = Just x
     done _          = Nothing
 
 -- | Run 'mount' and look up the mount point relating to the
@@ -115,7 +115,7 @@ getMountPoint :: FilePath                      -- ^ Local directory to find the 
 getMountPoint dir = do
     let dir' = addTrailingPathSeparator dir
     -- Run 'mount' and find the remote mount points
-    mountPoints <- catMaybes . map parseMountPoint . lines <$>
+    mountPoints <- mapMaybe parseMountPoint . lines <$>
                     readProcess "mount" [] ""
     -- Find mount point that matches the current directory
     case filter ((`isPrefixOf` dir')
@@ -162,7 +162,8 @@ vado MountPoint{..} settings cwd sshopts cmd args = do
     let destinationDir = remoteDir </> makeRelative localDir cwd
     -- Run ssh with
     return $
-        [unpack $ mconcat [remoteUser, "@", remoteHost]]
+        [unpack $ (if null remoteUser then "" else remoteUser <> "@")
+                  <> remoteHost]
         ++ case find (\MountSettings{..} ->
                        remoteUser == sshfsUser
                        && remoteHost == sshfsHost) settings of
