@@ -62,3 +62,8 @@ First install the Haskell Platform, then run...
     cd vado
     cabal install
 
+
+usage
+=====
+
+More usage information and examples can be found on the [wiki](https://github.com/hamishmack/vado/wiki)
