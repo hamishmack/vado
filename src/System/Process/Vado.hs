@@ -30,7 +30,7 @@ module System.Process.Vado (
 ) where
 
 import Prelude hiding (null)
-import Control.Applicative ((<$>), (<*))
+import Control.Applicative ((<$>), (<*), (*>), (<|>))
 import Data.Text (pack, unpack, Text, null)
 import Data.List (isPrefixOf, find)
 import Data.Monoid (mconcat, (<>))
@@ -93,7 +93,7 @@ defMountSettings = do
 mountPointParser :: Parser MountPoint
 mountPointParser = do
     remoteUser <- option "" (P.takeWhile1 (/= '@') <* string "@")
-    remoteHost <- P.takeWhile1 (/= ':')
+    remoteHost <- (string "[" *> P.takeWhile1 (/= ']') <* string "]") <|> P.takeWhile1 (/= ':')
     string ":"
     remoteDir <- unpack <$> P.takeWhile1 (/= ' ')
     string " on "
