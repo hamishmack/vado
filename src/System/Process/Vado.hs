@@ -33,7 +33,7 @@ import Prelude hiding (null)
 import Control.Applicative ((<$>), (<*), (*>), (<|>))
 import Data.Text (pack, unpack, Text, null)
 import Data.List (isPrefixOf, find)
-import Data.Monoid (mconcat, (<>))
+import Data.Monoid (mconcat, mappend)
 import Data.Attoparsec.Text (parseOnly, string, Parser, IResult(..), option)
 import qualified Data.Attoparsec.Text as P (takeWhile1)
 import Data.Text.IO (hPutStrLn)
@@ -166,8 +166,8 @@ vado MountPoint{..} settings cwd sshopts cmd args = do
     let destinationDir = remoteDir </> makeRelative localDir cwd
     -- Run ssh with
     return $
-        [unpack $ (if null remoteUser then "" else remoteUser <> "@")
-                  <> remoteHost]
+        [unpack $ (if null remoteUser then "" else remoteUser `mappend` "@")
+                  `mappend` remoteHost]
         ++ case find (\MountSettings{..} ->
                        remoteUser == sshfsUser
                        && remoteHost == sshfsHost) settings of
