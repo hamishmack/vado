@@ -17,7 +17,7 @@ data-dir: ""
 library
     build-depends: base -any, QuickCheck -any, attoparsec >=0.10.4.0 && <0.11,
                    directory >=1.1.0.0 && <1.3, filepath >=1.2.0.0 && <1.4,
-                   process >=1.0.1.5 && <1.2, text >=0.11.3.1 && <0.12
+                   process >=1.0.1.5 && <1.3, text >=0.11.3.1 && <0.12
     exposed-modules: System.Process.Vado
     exposed: True
     buildable: True
@@ -26,7 +26,7 @@ library
 executable vado
     build-depends: base -any, QuickCheck -any, attoparsec >=0.10.4.0 && <0.11,
                    directory >=1.1.0.0 && <1.3, filepath >=1.2.0.0 && <1.4,
-                   process >=1.0.1.5 && <1.2, text >=0.11.3.1 && <0.12
+                   process >=1.0.1.5 && <1.3, text >=0.11.3.1 && <0.12
     main-is: Main.hs
     buildable: True
     hs-source-dirs: src
@@ -35,7 +35,7 @@ executable vado
 executable vamount
     build-depends: base -any, QuickCheck -any, attoparsec >=0.10.4.0 && <0.11,
                    directory >=1.1.0.0 && <1.3, filepath >=1.2.0.0 && <1.4,
-                   process >=1.0.1.5 && <1.2, text >=0.11.3.1 && <0.12
+                   process >=1.0.1.5 && <1.3, text >=0.11.3.1 && <0.12
     main-is: Vamount.hs
     buildable: True
     hs-source-dirs: src
@@ -44,7 +44,7 @@ executable vamount
 test-suite test-vado
     build-depends: base -any, QuickCheck -any, attoparsec >=0.10.4.0 && <0.11,
                    directory >=1.1.0.0 && <1.3, filepath >=1.2.0.0 && <1.4,
-                   process >=1.0.1.5 && <1.2, text >=0.11.3.1 && <0.12
+                   process >=1.0.1.5 && <1.3, text >=0.11.3.1 && <0.12
     type: exitcode-stdio-1.0
     main-is: Test.hs
     buildable: True
